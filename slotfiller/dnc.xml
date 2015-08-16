@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<query_set>
+  <query id="CS14_ENG_001">
+    <name>Democratic National Committee</name>
+    <docid>bolt-eng-DF-199-192783-6878727</docid>
+    <beg>8399</beg>
+    <end>8427</end>
+    <enttype>ORG</enttype>
+    <slot0>org:members</slot0>
+    <slot1>org:city_of_headquarters</slot1>
+  </query>
+</query_set>
