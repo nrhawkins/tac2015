@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<query_set>
+<query id="CS14_ENG_062_5ea804ff-0234-3fdc-8bed-47eb75ac4911">
+    <name>Pliskova</name>
+    <docid>AFP_ENG_20100703.0167</docid>
+    <beg>557</beg>
+    <end>564</end>
+    <enttype>per</enttype>
+    <slot>per:origin</slot>
+    <slot0>gpe:births_in_country</slot0>
+    <slot1>per:origin</slot1>
+  </query>
+</query_set>

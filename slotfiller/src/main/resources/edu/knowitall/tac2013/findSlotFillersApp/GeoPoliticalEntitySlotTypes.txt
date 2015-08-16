@@ -1,0 +1,17 @@
+gpe:holds_shares_in
+gpe:organizations_founded
+gpe:member_of
+gpe:subsidiaries
+gpe:employees_or_members
+gpe:births_in_city
+gpe:births_in_stateorprovince
+gpe:births_in_country
+gpe:residents_of_city
+gpe:residents_of_stateorprovince
+gpe:residents_of_country
+gpe:deaths_in_city
+gpe:deaths_in_stateorprovince
+gpe:deaths_in_country
+gpe:headquarters_in_city
+gpe:headquarters_in_stateorprovince
+gpe:headquarters_in_country
