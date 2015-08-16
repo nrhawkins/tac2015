@@ -59,7 +59,7 @@ object QueryMappingReader {
     
     System.err.print("Loading query->entity mapping...")
     
-    val kbpQueries = KBPQuery.parseKBPQueries(queryFile.getAbsolutePath())
+    val kbpQueries = KBPQuery.parseKBPQueries(queryFile.getAbsolutePath(),"round0")
     
     val queryIdInfos = kbpQueries.map { query =>
       (query.id, EntityInfo(query.name, query.nodeId))

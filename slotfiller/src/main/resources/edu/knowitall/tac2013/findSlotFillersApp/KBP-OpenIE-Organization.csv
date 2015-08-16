@@ -262,3 +262,8 @@ org:number_of_employees_members,1,claims,,arg1,arg2,Integer,,Integer employees
 org:political_religious_affiliation,0,,,,,,,
 ,,,,,,,,
 org:shareholders,0,,,,,,,
+,,,,,,,,
+org:employees_or_members,0,,,,,,,
+org:students,0,,,,,,,
+org:holds_shares_in,0,,,,,,,
+org:organizations_founded,0,,,,,,,

@@ -14,3 +14,7 @@ org:stateorprovince_of_headquarters
 org:city_of_headquarters
 org:shareholders
 org:website
+org:employees_or_members
+org:students
+org:holds_shares_in
+org:organizations_founded

@@ -22,6 +22,7 @@ import edu.stanford.nlp.dcoref.CorefCoreAnnotations.CorefChainAnnotation;
 import edu.stanford.nlp.dcoref.CorefCoreAnnotations.CorefClusterIdAnnotation;
 import edu.stanford.nlp.dcoref.CorefCoreAnnotations.CorefGraphAnnotation;
 import edu.stanford.nlp.ling.CoreAnnotations.*;
+import edu.stanford.nlp.ling.CoreAnnotations;
 import edu.stanford.nlp.ling.CoreLabel;
 import edu.stanford.nlp.pipeline.Annotation;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
@@ -30,7 +31,7 @@ import edu.stanford.nlp.time.Timex;
 import edu.stanford.nlp.util.CoreMap;
 import edu.stanford.nlp.util.IntTuple;
 import edu.stanford.nlp.util.Pair;
-
+//import edu.washington.multirframework.data.Argument;
 import edu.knowitall.tac2013.app.Candidate;
 import edu.knowitall.tac2013.app.KBPQueryEntityType;
 import edu.knowitall.tac2013.app.util.DocUtils;
@@ -72,6 +73,8 @@ public class StanfordAnnotatorHelperMethods {
 		sh.runSuTime("testXMLDoc");
 		
 	}
+	
+	public StanfordCoreNLP getCorefPipeline(){return corefPipeline;}
 	
 	public void clearHashMaps(){
 		corefAnnotationMap.clear();
@@ -177,18 +180,171 @@ public class StanfordAnnotatorHelperMethods {
 	       return normalizeDate(originalString);
 	}
 	
-	public List<CorefMention> getCorefMentions(String xmlString, Interval interval) {
-		Annotation document = new Annotation(xmlString);
+	public List<CoreMap> getSentences(String docString) {
+		Annotation document = new Annotation(docString);
+		corefPipeline.annotate(document);
+		List<CoreMap> sentences = document.get(SentencesAnnotation.class);
+		return sentences;
+	}
+	
+	public List<CoreLabel> getTokens(CoreMap sentence) {
+		List<CoreLabel> tokens = sentence.get(TokensAnnotation.class);
+		return tokens;
+	}
+	
+	public List<String> getNERs(List<CoreLabel> tokens) {
+      List<String> ners = new ArrayList<String>();	
+      for(CoreLabel token : tokens){		
+	    String ner = token.get(CoreAnnotations.NamedEntityTagAnnotation.class);
+	    ners.add(ner);
+      }
+      return ners;
+	}
+	  
+	public List<String> getNamesFromCorefMentions(String docId, Interval interval) {
+
+		String rawDoc = SolrHelper.getRawDoc(docId);
+		
+		Annotation document = new Annotation(rawDoc);
 		corefPipeline.annotate(document);
 		
-		
-		
 		Map<Integer, CorefChain> graph = document.get(CorefChainAnnotation.class);
-		for(Integer i : graph.keySet()){
+		/*for(Integer i : graph.keySet()){
 			System.out.println("GROUP " + i);
 			CorefChain x = graph.get(i);
 			for( CorefMention m : x.getMentionsInTextualOrder()){
 				System.out.println(m.mentionSpan);
+			}
+		}*/
+
+		// -----------------------------------------------
+		// Get corefClusterID for the query name
+		// -----------------------------------------------
+		
+		Integer corefClusterID = null;
+		
+		List<CoreMap> sentences = document.get(SentencesAnnotation.class);
+		/*for(CoreMap sentence : sentences){
+			for(CoreLabel token : sentence.get(TokensAnnotation.class)){
+				
+			}
+		}*/
+		//List<Pair<IntTuple,IntTuple>> x  = document.get(CorefGraphAnnotation.class);
+
+		int s = 0, t = 0;
+	    for(CoreMap sentence: sentences){
+	    	t = 0;
+	    	for(CoreLabel token: sentence.get(TokensAnnotation.class)){
+	    		if(token.beginPosition() == interval.start()){
+	    			for(Integer i : graph.keySet()){
+	    				//System.out.println("GROUP " + i);
+	    				CorefChain x = graph.get(i);
+	    				for( CorefMention m : x.getMentionsInTextualOrder()){
+	    					//System.out.println(m.mentionSpan + " " + m.sentNum + " " + m.startIndex);
+	    					if(m.sentNum==(s+1) && m.startIndex <= (t+1) && (t+1) <= m.endIndex)
+	    						corefClusterID = m.corefClusterID;
+	    				}
+	    			}	
+	    			//corefClusterID = token.get(CorefClusterIdAnnotation.class);
+	    		}
+	    		t++;
+	    	}
+	    	s++;
+	    }
+		
+	    /*if(corefClusterID != null){
+	    	return graph.get(corefClusterID).getMentionsInTextualOrder();
+	    }
+	    else{
+	    	return new ArrayList<CorefMention>();
+	    }*/
+	    
+	    List<String> fullNameList = new ArrayList<String>();
+	    List<CorefMention> corefMentions = new ArrayList<CorefMention>();
+	    List<CorefMention> properCorefMentions = new ArrayList<CorefMention>();
+	    
+	    //System.out.println("FN corefClusterID: " + corefClusterID);
+	    
+	    if(corefClusterID != null){
+    	  corefMentions = graph.get(corefClusterID).getMentionsInTextualOrder();
+    	  
+    	  //System.out.println("FN corefMentions size: " + corefMentions.size());
+    	  
+    	  for(CorefMention m : corefMentions){
+    		  if(m.mentionType.toString().contains("PROPER")) properCorefMentions.add(m);		                	            	
+	      }
+    	  
+    	  //System.out.println("FN properCorefMentions size: " + properCorefMentions.size());
+    	  
+    	  //
+    	  for( CorefMention m : properCorefMentions){
+    		  CoreMap sentence = sentences.get(m.sentNum -1);
+    		  List<CoreLabel> tokens = sentence.get(TokensAnnotation.class);
+    		  for(int i = (m.startIndex-1); i < (m.endIndex); i++){
+    			  String ner = tokens.get(i).get(CoreAnnotations.NamedEntityTagAnnotation.class);
+    			  if(ner.toString().equals("PERSON")){
+    				  
+    				  //System.out.println("FN getting Full Name: " + tokens.get(i).originalText());
+    				  String name = getRelevantStringSequence(tokens, i, m.endIndex, "PERSON");
+    				  fullNameList.add(name);
+    				  i += name.split(" ").length; 
+    			  }
+    		  }		  
+    	  }
+	    }	
+	    
+	    //System.out.println("FN fullNameList size: " + fullNameList.size());
+	    //for(String n : fullNameList){ System.out.println("FN: " + n);}
+	    
+	    return fullNameList;   
+		
+	}
+
+
+	public String getRelevantStringSequence(List<CoreLabel> tokens, Integer i, Integer endIndex, String ner){
+		
+		String relevantStringSequence = tokens.get(i).originalText();
+		i++;
+		
+		while(i < endIndex){
+
+			String nextNer = tokens.get(i).get(CoreAnnotations.NamedEntityTagAnnotation.class);
+			if(ner.equals(nextNer)){
+				relevantStringSequence = relevantStringSequence + " " + tokens.get(i).originalText();
+			}
+			else{
+				break;
+			}
+			
+			i++;
+		}		
+
+		return relevantStringSequence;
+	}
+	
+	
+	
+	public List<CorefMention> getCorefMentions(String xmlString, Interval interval) {
+		Annotation document = new Annotation(xmlString);
+		corefPipeline.annotate(document);
+
+		// Explore ner of kef coref mention --------------------------------------------------------
+		//Annotation testDoc = new Annotation("Athens Olympic silver medallist Meb Keflezighi");
+		//corefPipeline.annotate(testDoc);
+		//List<CoreMap> sentencesTest = testDoc.get(SentencesAnnotation.class);
+		//for(CoreMap sentence : sentencesTest){
+		//	for(CoreLabel token : sentence.get(TokensAnnotation.class)){
+        //      System.out.println("Token: " + token.originalText() + " " + token.ner());				
+		//	}
+		//}
+        // -----------------------------------------------------------------------------------------		
+		
+		Map<Integer, CorefChain> graph = document.get(CorefChainAnnotation.class);
+		for(Integer i : graph.keySet()){
+			//System.out.println("GROUP " + i);
+			CorefChain x = graph.get(i);
+			for( CorefMention m : x.getMentionsInTextualOrder()){
+				//System.out.println(m.mentionSpan);
 			}
 		}
 

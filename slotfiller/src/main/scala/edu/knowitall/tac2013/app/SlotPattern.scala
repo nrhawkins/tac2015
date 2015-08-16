@@ -26,7 +26,7 @@ case class SlotPattern private (
   arg1Terms foreach requireTrimmed
   arg2Terms foreach requireTrimmed
 
-  val entityType: KBPQueryEntityType = if (slotName.startsWith("per:")) PER else ORG
+  val entityType: KBPQueryEntityType = if (slotName.startsWith("per:")) PER else if (slotName.startsWith("org:")) ORG else GPE
   
   def isValid(): Boolean = {
     if (relString.nonEmpty && maxValues.nonEmpty &&
@@ -63,6 +63,7 @@ object SlotPattern {
 
   val personPatternResource = "/edu/knowitall/tac2013/findSlotFillersApp/KBP-OpenIE-Person.csv"
   val organizationPatternResource = "/edu/knowitall/tac2013/findSlotFillersApp/KBP-OpenIE-Organization.csv"
+  val gpePatternResource = "/edu/knowitall/tac2013/findSlotFillersApp/KBP-OpenIE-GeoPoliticalEntity.csv"
     
   def read(csvDataArray: Array[String]): Option[SlotPattern] = {
     

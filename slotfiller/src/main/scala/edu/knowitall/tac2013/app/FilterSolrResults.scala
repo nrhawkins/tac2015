@@ -554,6 +554,17 @@ object FilterSolrResults {
     !htmlEntityPattern.matcher(candidate.trimmedFill.string).matches
   }
 
+  //This filter is for when the extraction must come from a cold start corpus, and
+  //that corpus is specified as a list of file names, which are a subset of a corpus
+  //in one of the solr indices
+  //If we have the cold start corpus in its own solr index, we don't need to filter
+  private def satisfiesDocFilter(kbpQuery: KBPQuery)(candidate: Candidate): Boolean = {
+  
+    val docId = candidate.extr.sentence.docId   
+    if(ColdStartCorpus.documents.contains(docId)) true
+    else false    
+  }
+  
   //filters results from solr by calling helper methods that look at the KbpSlotToOpenIEData specifications and compare
   //that data with the results from solr to see if the relation is still a candidate
   //
@@ -561,6 +572,7 @@ object FilterSolrResults {
     
     
     def combinedFilter(candidate: Candidate) = (
+            //satisfiesDocFilter(kbpQuery)(candidate) &&
             satisfiesLengthFilter(candidate) &&
             satisfiesArg2BeginsFilter(candidate) &&
             satisfiesRelFilter(candidate) &&

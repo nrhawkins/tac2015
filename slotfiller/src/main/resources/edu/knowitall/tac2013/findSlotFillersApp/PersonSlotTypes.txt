@@ -23,3 +23,6 @@ per:parents
 per:siblings
 per:other_family
 per:charges
+per:holds_shares_in
+per:organizations_founded
+per:top_member_employee_of

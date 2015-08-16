@@ -63,6 +63,8 @@ class SlotFillReranker(fmt: OutputFormatter) {
         case false => getNameGroups(slotCandidates)
         case true => slotCandidates.groupBy(_.trimmedFill.string)
       }
+
+      //println("SFRR groups size: " + groups.size)
       
       // 
       val rankedAnswers = dateFill match {

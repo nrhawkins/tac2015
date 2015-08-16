@@ -214,6 +214,15 @@ class Candidate(val id: Int, val solrQuery: SolrQuery, val extr: KbpExtraction, 
         }
         return None
       }
+      case "gpe" => {
+        for(t <- intersectingTypes){
+          if(t.descriptor() == "StanfordLOCATION"){
+            return Some(t)
+          }
+        }
+        return None
+      }
+      
     }
   }
   

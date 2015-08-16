@@ -58,8 +58,9 @@ object KBPQueryExecutor {
       case false => OutputFormatter.formattedAnswersOnly(outputStream,runID)
     }
 
-    val kbpQueryList = KBPQuery.parseKBPQueries(queryFile)
+    val kbpQueryList = KBPQuery.parseKBPQueries(queryFile, "round0")
         for (kbpQuery <- kbpQueryList) {
+          
           try{
              executeKbpQuery(queryExecutor, kbpQuery, outputFormatter,corpus)
              //clear hashmaps from previous queries in stanford helper so we don't

@@ -53,7 +53,9 @@ class SolrQueryExecutor(val solrClient: SolrClient, val corefOn: Boolean) {
   //to our solr instance for every type of OpenIERelation, this method uses no filters, this is for debugging purposes
   def executeUnfilteredQuery(kbpQuery: KBPQuery, slot: Slot): Seq[Candidate] = {
 
-    if (kbpQuery.nodeId.isEmpty && kbpQuery.numEntityFbids > 4) {
+    if (kbpQuery.nodeId.isEmpty && kbpQuery.numEntityFbids > 8) {
+    //if (kbpQuery.nodeId.isEmpty && kbpQuery.numEntityFbids > 4) {
+      println("nodeId is empty && num entity fbids > 4")
       Nil
     } else {
       val patterns = slot.patterns
@@ -87,13 +89,17 @@ object SolrQueryExecutor {
 
   val newUrl = "http://knowitall:knowit!@rv-n16.cs.washington.edu:8123/solr"
 
+  // cold start kbp_2015 openie extractions 
+  val csUrl = "http://rv-n16.cs.washington.edu:8468/solr/cstuples"
+    
   private lazy val oldCorpus = new SolrQueryExecutor(oldUrl)
   private lazy val oldCorpusCoref = new SolrQueryExecutor(oldUrl, corefOn=true)
  
   private lazy val newCorpus = new SolrQueryExecutor(newUrl)
   private lazy val newCorpusCoref = new SolrQueryExecutor(newUrl, corefOn=true)
   
-
+  private lazy val csCorpus = new SolrQueryExecutor(csUrl)
+  private lazy val csCorpusCoref = new SolrQueryExecutor(csUrl, corefOn=true)
 
   
   def getInstance(str: String, corefOn: Boolean = false): SolrQueryExecutor = (str, corefOn) match {
@@ -101,6 +107,8 @@ object SolrQueryExecutor {
     case ("old", false) => oldCorpus
     case ("new", true) => newCorpusCoref
     case ("new", false) => newCorpus
-    case _ => throw new IllegalArgumentException("Corpus must be either \"old\" or \"new\"")
+    case ("cs", true) => csCorpusCoref
+    case ("cs", false) => csCorpus
+    case _ => throw new IllegalArgumentException("Corpus must be either \"old\" or \"new\" or \"cs\"")
   }
 }

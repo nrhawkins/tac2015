@@ -1,5 +1,6 @@
 package edu.knowitall.tac2013.app
 
+import scala.math._
 import scala.io._
 import java.io._
 import edu.knowitall.tac2013.solr.query.SolrQuery
@@ -32,10 +33,10 @@ case class OutputFormatter(
   
   private def indentStr(i: Int): String = Seq.fill(i)(indentStr).mkString
     
-  private def println(i: Int, string: String) = {
+  /*private def println(i: Int, string: String) = {
     out.println(s"${indentStr(i)}$string")
     if (doubleSpace) out.println
-  }
+  }*/
     
   private def printSolrResults(resultsName: String, mapOfResults: Map[Slot, Seq[Candidate]], kbpQuery: KBPQuery): Unit = {
 
@@ -102,14 +103,21 @@ case class OutputFormatter(
 
     val detailed = if (detailedAnswers) "DEBUG " else ""
 
-    if (detailedAnswers) {
-      println(0, "")
-      println(0, s"------------------- $detailed FORMATTED SLOT FILLS -------------------")
-      println(0, "")
-    }
-    
+    //if (detailedAnswers) {
+    //  println(0, "")
+    //  println(0, s"------------------- $detailed FORMATTED SLOT FILLS -------------------")
+    //  println(0, "")
+    //}
+            
     //iterate over every slot type
     for (kbpSlot <- kbpQuery.slotsToFill) yield {
+      
+      //println("OF: slot name: " + kbpSlot.name)
+      val x = bestAnswers(kbpSlot)
+      //if(x.size > 0){
+      //  x.foreach(c => println("OF bac: " + c.entityField.originalText))        
+      //}
+      
       if (detailedAnswers) printDetailedSlotAnswer(kbpSlot, kbpQuery, bestAnswers.getOrElse(kbpSlot, Nil))
       else printSlotAnswer(kbpSlot, kbpQuery, bestAnswers.getOrElse(kbpSlot, Nil))
     }
@@ -124,26 +132,47 @@ case class OutputFormatter(
 
   private def printSlotAnswer(slot: Slot, kbpQuery: KBPQuery, bestAnswers: Seq[Candidate]): Unit = {
 
+    //println("OF psa ba empty: " + bestAnswers.isEmpty)
+    
     if (bestAnswers.isEmpty) {
-      out.println(Iterator(kbpQuery.id, slot.name, runID, "NIL").mkString("\t"))
+      // Don't need to print NIL for Cold Start
+      //out.println(Iterator(kbpQuery.id, slot.name, runID, "NIL").mkString("\t"))
     } else {
       for (bestAnswer <- bestAnswers) {
         val queryData = bestAnswer.pattern
         val bestExtr = bestAnswer.extr
         val slotFillIn = queryData.slotFillIn.get.toLowerCase()
+        //val startOffsetAll = min(bestAnswer.entityOffsetInterval.start, bestAnswer.fillOffsetInterval.start)
+        //val endOffsetAll = max(bestAnswer.entityOffsetInterval.end, bestAnswer.fillOffsetInterval.end)
+        
+        //println("OF psa slot fill in: " + slotFillIn)
         
         require(slotFillIn == "arg1" || slotFillIn == "arg2" || slotFillIn =="relation")
+        
+        //println("OF psa: getting fields")
+        
+        /*val fields = Iterator(
+          kbpQuery.id,
+          slot.name,
+          runID,
+          bestAnswer.extr.sentence.docId + ":",
+          bestAnswer.justificationOffsetString 
+          ) */       
         
         val fields = Iterator(
           kbpQuery.id,
           slot.name,
           runID,
-          bestAnswer.extr.sentence.docId,
+          bestAnswer.extr.sentence.docId + ":" + bestAnswer.justificationOffsetString,
+          //bestAnswer.extr.sentence.docId + ":" + startOffsetAll + "-" + endOffsetAll,
           bestAnswer.trimmedFill.string,
-          bestAnswer.fillOffsetString,
-          bestAnswer.entityOffsetString,
-          bestAnswer.justificationOffsetString,
+          slot.slotfillType,
+          bestAnswer.extr.sentence.docId + ":" + bestAnswer.fillOffsetString,
+          //bestAnswer.entityOffsetString,
+          //bestAnswer.justificationOffsetString,
           bestAnswer.extr.confidence)
+          
+          //println("OF psa fields: " + fields.mkString("\t"))
         
         out.println(fields.mkString("\t"))
       }
@@ -151,6 +180,42 @@ case class OutputFormatter(
   }
   
   private def printDetailedSlotAnswer(slot: Slot, kbpQuery: KBPQuery, bestAnswers: Seq[Candidate]): Unit = {
+
+    if (bestAnswers.isEmpty) {
+      //out.println(Iterator(kbpQuery.id, slot.name, runID, "NIL").mkString("\t"))
+    } else {
+      for (bestAnswer <- bestAnswers) {
+        val queryData = bestAnswer.pattern
+        val bestExtr = bestAnswer.extr
+        val slotFillIn = queryData.slotFillIn.get.toLowerCase()
+        //val startOffsetAll = min(bestAnswer.entityOffsetInterval.start, bestAnswer.fillOffsetInterval.start)
+        //val endOffsetAll = max(bestAnswer.entityOffsetInterval.end, bestAnswer.fillOffsetInterval.end)
+        
+        require(slotFillIn == "arg1" || slotFillIn == "arg2" || slotFillIn =="relation")
+        
+        val fields = Iterator(
+          kbpQuery.id,
+          //bestAnswer.trimmedEntity.string,
+          slot.name,
+          runID,
+          bestAnswer.extr.sentence.docId + ":" + bestAnswer.justificationOffsetString,
+          //bestAnswer.extr.sentence.docId + ":" + startOffsetAll + "-" + endOffsetAll,
+          bestAnswer.trimmedFill.string,
+          slot.slotfillType, 
+          bestAnswer.extr.sentence.docId + ":" + bestAnswer.fillOffsetString,
+          //bestAnswer.entityOffsetString,
+          //bestAnswer.justificationOffsetString,
+          bestAnswer.extr.confidence,
+          kbpQuery.name,
+          bestAnswer.extr.sentenceText.replace("\n"," "))
+        
+        out.println(fields.mkString("\t"))
+        //out.println(bestAnswer.extr.sentenceText.replace("\n"," "))
+      }
+    }
+  }
+  
+  /*private def printDetailedSlotAnswer(slot: Slot, kbpQuery: KBPQuery, bestAnswers: Seq[Candidate]): Unit = {
     
     if (bestAnswers.isEmpty) {
       out.println(Iterator(kbpQuery.id, slot.name, runID, "NIL").mkString("\t"))
@@ -175,7 +240,7 @@ case class OutputFormatter(
         out.println(fields.mkString("\t"))
       }
     }
-  }
+  } */
   
   def printFillGroups(header: String, slot: Slot, groups: Map[String, Seq[Candidate]]): Unit = if (printGroups) {
     

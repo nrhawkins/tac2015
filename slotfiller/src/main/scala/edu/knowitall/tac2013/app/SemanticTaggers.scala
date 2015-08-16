@@ -136,6 +136,13 @@ object SemanticTaggers {
     types.toList
   }
   
+  def getStanfordTagTypes(extr: KbpExtraction): List[Type] = {
+
+    val sent = extr.sentence.chunkedTokens    
+    val types = SemanticTaggers.useStandfordNERTagger(sent)
+    types
+  }
+  
   def getTagTypes(extr: KbpExtraction, pattern: SlotPattern): List[Type] = {
     
     
