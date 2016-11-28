@@ -25,6 +25,7 @@ case class KbpDocLine(val line: String, val offset: Int) {
 
 object KbpProcessedDoc {
   val docIdPattern = Pattern.compile("^<DOC\\s+id=.*", Pattern.CASE_INSENSITIVE)
+  val docIdPattern2 = Pattern.compile("^<DOC\\s+docid=.*", Pattern.CASE_INSENSITIVE)
   val trailingWs = Pattern.compile("\\s+$")
   val quotes = Pattern.compile("^\"([^\"]+)\"$")
 
@@ -124,6 +125,7 @@ class KbpProcessedDoc(
     // <DOCID>id here...</DOCID>		(web)
     // <DOC id="AFP_ENG_20090531.0001" type="story" >	(news)
     // <doc id="bolt-eng-DF-183-195681-7948494">	(forum)
+    // <DOC docid="ENG_NW_001278_20131110_F00011SRW">
     val str = docIdLine.line
 
     if (str.startsWith("<DOCID>")) {
@@ -132,6 +134,9 @@ class KbpProcessedDoc(
     } else if (docIdPattern.matcher(str).find()) {
       // drop the <DOC ID=" part, and take until the closing quote.
       Some(str.drop(9).takeWhile(_ != '\"'))
+    } else if (docIdPattern2.matcher(str).find()) {
+      // drop the <DOC docid=" part, and take until the closing quote.
+      Some(str.drop(12).takeWhile(_ != '\"'))
     } else {
       // convertToSentences reports the error for us...
       None

@@ -1,7 +1,0 @@
-/homes/gws/nhawkins/KBPOpenIE2013/slotfiller/queries2_per.xml q2Output new
-
-
-run /homes/gws/nhawkins/ImplIE/kbp/corpus coldStartOutput 
-
-run /homes/gws/nhawkins/ImplIE/kbp/corpus/apw coldStartOutput 
-

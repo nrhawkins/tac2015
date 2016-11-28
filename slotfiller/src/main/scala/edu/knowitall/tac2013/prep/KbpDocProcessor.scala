@@ -111,7 +111,8 @@ object KbpNewsDocProcessor extends KbpDocProcessor {
       if (datelineNext) {
         dateLine = Some(kbpLine)
         datelineNext = false
-      } else if (docIdLine.isEmpty && line.startsWith("<DOC id")) docIdLine = Some(kbpLine)
+      //} else if (docIdLine.isEmpty && (line.startsWith("<DOC id") || line.startsWith("<DOC docid"))) docIdLine = Some(kbpLine)
+      } else if (docIdLine.isEmpty && (line.startsWith("<DOC id") || line.startsWith("<DOC docid"))) docIdLine = Some(kbpLine)
       else if (dateLine.isEmpty && line.startsWith("<DATELINE>")) datelineNext = true
       else if (isValidText(line)) textLines.add(kbpLine)
       else textLines.add(kbpLine.copy(line = "\n"))

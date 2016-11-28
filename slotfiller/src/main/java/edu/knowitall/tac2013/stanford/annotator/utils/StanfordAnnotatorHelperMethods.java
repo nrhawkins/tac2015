@@ -299,6 +299,116 @@ public class StanfordAnnotatorHelperMethods {
 	    return fullNameList;   
 		
 	}
+	
+    public List<String> getFullNamesFromCorefMentions(Annotation document, Interval interval) {
+		
+		//String rawDoc = SolrHelper.getRawDoc(docId);
+		//Annotation document = new Annotation(rawDoc);
+		//corefPipeline.annotate(document);
+		
+		Map<Integer, CorefChain> graph = document.get(CorefChainAnnotation.class);
+		/*for(Integer i : graph.keySet()){
+			System.out.println("GROUP " + i);
+			CorefChain x = graph.get(i);
+			for( CorefMention m : x.getMentionsInTextualOrder()){
+				System.out.println(m.mentionSpan + " " + m.sentNum + " " + m.startIndex);
+			}
+		}*/
+
+		// -----------------------------------------------
+		// Get corefClusterID for the query name
+		// -----------------------------------------------
+		
+		Integer corefClusterID = null;
+		
+		List<CoreMap> sentences = document.get(SentencesAnnotation.class);
+		/*for(CoreMap sentence : sentences){
+			for(CoreLabel token : sentence.get(TokensAnnotation.class)){
+				
+			}
+		}*/
+		//List<Pair<IntTuple,IntTuple>> x  = document.get(CorefGraphAnnotation.class);
+
+		int s = 0, t = 0;
+	    for(CoreMap sentence: sentences){
+	    	t = 0;
+	    	for(CoreLabel token: sentence.get(TokensAnnotation.class)){
+	    		
+	    		//if(token.originalText().contentEquals("Donald")) System.out.println("Donald: " + token.beginPosition());	    				
+	    	    //if(token.beginPosition() == 3009) {
+	    	      //System.out.println("3009: " + s + " " + t + " " + token.originalText() + " " + interval.start() + " " + (token.beginPosition() == interval.start()));
+                  //System.out.println(token.sentIndex() + " " + token.index());}
+	    		if(token.beginPosition() == interval.start()){
+	    			for(Integer i : graph.keySet()){
+	    				//System.out.println("GROUP " + i);
+	    				CorefChain x = graph.get(i);
+	    				for( CorefMention m : x.getMentionsInTextualOrder()){
+	    					//System.out.println(m.mentionSpan + " " + m.sentNum + " " + m.startIndex);
+	    					if(m.sentNum==(s+1) && m.startIndex <= (t+1) && (t+1) <= m.endIndex)
+	    						corefClusterID = m.corefClusterID;
+	    				}
+	    			}			
+	    			
+	    			//System.out.println("Assigning corefClusterID");
+	    			//corefClusterID = token.get(CorefClusterIdAnnotation.class);
+	    			//System.out.println(sentence.get(TokensAnnotation.class).get(token.index()).get(CorefClusterIdAnnotation.class));
+	    			//System.out.println(sentence.get(TokensAnnotation.class).get(token.index()+1).get(CorefClusterIdAnnotation.class));
+	    			//System.out.println("corefClusterID = " + corefClusterID);
+	    		}
+	    		t++;
+	    	}
+	    	s++;
+	    }
+		
+	    /*if(corefClusterID != null){
+	    	return graph.get(corefClusterID).getMentionsInTextualOrder();
+	    }
+	    else{
+	    	return new ArrayList<CorefMention>();
+	    }*/
+	    
+	    List<String> fullNameList = new ArrayList<String>();
+	    List<CorefMention> corefMentions = new ArrayList<CorefMention>();
+	    List<CorefMention> properCorefMentions = new ArrayList<CorefMention>();
+	    
+	    //System.out.println("FN corefClusterID: " + corefClusterID);
+	    
+	    if(corefClusterID != null){
+    	  corefMentions = graph.get(corefClusterID).getMentionsInTextualOrder();
+    	  
+    	  //System.out.println("FN corefMentions size: " + corefMentions.size());
+    	  
+    	  for(CorefMention m : corefMentions){
+    		  if(m.mentionType.toString().contains("PROPER")) properCorefMentions.add(m);		                	            	
+	      }
+    	  
+    	  //System.out.println("FN properCorefMentions size: " + properCorefMentions.size());
+    	  
+    	  //
+    	  for( CorefMention m : properCorefMentions){
+    		  CoreMap sentence = sentences.get(m.sentNum -1);
+    		  List<CoreLabel> tokens = sentence.get(TokensAnnotation.class);
+    		  for(int i = (m.startIndex-1); i < (m.endIndex); i++){
+    			  String ner = "";
+                  if(i < tokens.size()){
+    			    ner = tokens.get(i).get(CoreAnnotations.NamedEntityTagAnnotation.class);
+                  }
+    			  if(ner.toString().equals("PERSON")){
+    				  
+    				  //System.out.println("FN getting Full Name: " + tokens.get(i).originalText());
+    				  String name = getRelevantStringSequence(tokens, i, m.endIndex, "PERSON");
+    				  fullNameList.add(name);
+    				  i += name.split(" ").length - 1;     				  
+    			  }
+    		  }		  
+    	  }
+	    }	
+	    
+	    //System.out.println("FN fullNameList size: " + fullNameList.size());
+	    //for(String n : fullNameList){ System.out.println("FN: " + n);}
+	    
+	    return fullNameList;   	
+	}
 
 
 	public String getRelevantStringSequence(List<CoreLabel> tokens, Integer i, Integer endIndex, String ner){

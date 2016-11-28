@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<query_set>
+  <query id="CS14_ENG_001">
+    <name>Terry McAuliffe</name>
+    <docid>WPB_ENG_20100727.0076</docid>
+    <beg>382</beg>
+    <end>396</end>
+    <enttype>PER</enttype>
+    <slot0>per:holds_shares_in</slot0>
+    <slot1>org:city_of_headquarters</slot1>
+  </query>
+  <query id="CS14_ENG_002">
+    <name>Springfield</name>
+    <docid>bolt-eng-DF-170-181109-15938152</docid>
+    <beg>522</beg>
+    <end>532</end>
+    <enttype>GPE</enttype>
+    <slot0>gpe:births_in_city</slot0>
+    <slot1>per:employee_or_member_of</slot1>
+  </query>
+  <query id="CS14_ENG_003">
+    <name>John Hickenlooper</name>
+    <docid>NYT_ENG_20100111.0080</docid>
+    <beg>357</beg>
+    <end>373</end>
+    <enttype>PER</enttype>
+    <slot0>per:other_family</slot0>
+    <slot1>per:date_of_death</slot1>
+  </query>
+  <query id="CS14_ENG_004">
+    <name>Prime View International</name>
+    <docid>AFP_ENG_20090601.0337</docid>
+    <beg>193</beg>
+    <end>216</end>
+    <enttype>ORG</enttype>
+    <slot0>org:subsidiaries</slot0>
+    <slot1>org:number_of_employees_members</slot1>
+  </query>
+  <query id="CS14_ENG_005">
+    <name>the National Diet</name>
+    <docid>XIN_ENG_20100712.0093</docid>
+    <beg>3157</beg>
+    <end>3173</end>
+    <enttype>ORG</enttype>
+    <slot0>org:employees_or_members</slot0>
+    <slot1>per:countries_of_residence</slot1>
+  </query>
+</query_set>

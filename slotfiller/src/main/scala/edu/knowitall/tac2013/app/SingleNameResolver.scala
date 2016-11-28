@@ -3,6 +3,7 @@ package edu.knowitall.tac2013.app
 import edu.knowitall.tac2013.app.util.DocUtils
 import edu.knowitall.collection.immutable.Interval
 import scala.collection.JavaConverters._
+import edu.stanford.nlp.pipeline.Annotation
 
 object SingleNameResolver {
   
@@ -40,6 +41,83 @@ object SingleNameResolver {
     else (true, q.name) 
     
   }
+  
+  def singleQueryName(doc: Annotation, q: KBPQuery): (Boolean,String) = {
+    
+    val names = DocUtils.stanfordHelper.getFullNamesFromCorefMentions(doc, Interval.closed(q.begOffset,q.endOffset)).asScala
+
+    //fullName has to have 2 or more names, has to overlap with the query name, dedupe same name, 
+    //sort by number of names in the full name
+    var fullNames = names.filter(n => n.split(" ").size >= 2).
+      filter(n => n.toLowerCase.contains(q.name.toLowerCase)). 
+      map(n=>toNameCase(n)).toSet.toList
+    //fullNames = fullNames.sortBy(f => f.split(" ").size).reverse
+      
+    fullNames.foreach(n => println("snrc: " + n))          
+    
+    val fullNameSize2 = fullNames.filter(n => n.split(" ").size == 2)
+    val fullNameSize3 = fullNames.filter(n => n.split(" ").size == 3)
+
+    // ------------------------------------------------------------------------
+    // Choosing which full name to return - 
+    // -----------------------------------
+    //A name of size three can mean: 
+    // 1) Charles Wescot Nierenberg
+    // 2) Seahawk Richard Sherman
+    // I have seen both of these types paired with a correct name of size 2,
+    // so, here I check if there is a name of size 2 first
+    // I take the name only if there is a single, because when it is not a 
+    // single, the names of size 2 are of siblings or parents
+    // -------------------------------------------------------------------------    
+    if(fullNameSize2.size == 1){(false, fullNameSize2(0))}
+    else if(fullNameSize3.size == 1){(false, fullNameSize3(0))}
+    else (true, q.name) 
+    
+  }
+
+  def singleQueryNameCheckQueryLists(doc: Annotation, q: KBPQuery, queryNameSetRound1: 
+    Set[KBPQueryNameId], queryNameSetRound2: Set[KBPQueryNameId]): (Boolean,String) = {
+    
+    val names = DocUtils.stanfordHelper.getFullNamesFromCorefMentions(doc, Interval.closed(q.begOffset,q.endOffset)).asScala
+
+    //fullName has to have 2 or more names, has to overlap with the query name, dedupe same name, 
+    //sort by number of names in the full name
+    var fullNames = names.filter(n => n.split(" ").size >= 2).
+      filter(n => n.toLowerCase.contains(q.name.toLowerCase)). 
+      map(n=>toNameCase(n)).toSet.toList
+    //fullNames = fullNames.sortBy(f => f.split(" ").size).reverse
+      
+    fullNames.foreach(n => println("snrc: " + n))    
+
+    val idTokens = q.id.split("_")
+    val idRound1 = idTokens.size match{
+      case s if s >= 3 => idTokens(0) + "_" + idTokens(1) + "_" + idTokens(2)
+      case _ => q.id
+    } 
+      
+    fullNames = fullNames.filter(n => !queryNameSetRound2.contains(KBPQueryNameId(idRound1,n)))  
+    fullNames = fullNames.filter(n => !queryNameSetRound1.contains(KBPQueryNameId(idRound1,n)))
+    
+    val fullNameSize2 = fullNames.filter(n => n.split(" ").size == 2)
+    val fullNameSize3 = fullNames.filter(n => n.split(" ").size == 3)
+
+    // ------------------------------------------------------------------------
+    // Choosing which full name to return - 
+    // -----------------------------------
+    //A name of size three can mean: 
+    // 1) Charles Wescot Nierenberg
+    // 2) Seahawk Richard Sherman
+    // I have seen both of these types paired with a correct name of size 2,
+    // so, here I check if there is a name of size 2 first
+    // I take the name only if there is a single, because when it is not a 
+    // single, the names of size 2 are of siblings or parents
+    // -------------------------------------------------------------------------    
+    if(fullNameSize2.size == 1){(false, fullNameSize2(0))}
+    else if(fullNameSize3.size == 1){(false, fullNameSize3(0))}
+    else (true, q.name) 
+    
+  }
+
   
   def toNameCase(name: String): String = {
     val nameCase = name.toLowerCase.split(" ").map(n => n.charAt(0).toUpper + n.drop(1)).mkString(" ")    

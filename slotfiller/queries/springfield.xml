@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<query_set>
+  <query id="CS14_ENG_002">
+    <name>Springfield</name>
+    <docid>bolt-eng-DF-170-181109-15938152</docid>
+    <beg>522</beg>
+    <end>532</end>
+    <enttype>GPE</enttype>
+    <slot0>gpe:births_in_city</slot0>
+    <slot1>per:employee_or_member_of</slot1>
+  </query>
+</query_set>

@@ -6,6 +6,8 @@ import edu.knowitall.tac2013.solr.query.SolrHelper
 import scala.xml.XML
 
 
+case class KBPQueryNameId (val id: String, var name: String)
+
 case class KBPQuery (val id: String, var name: String, val doc: String,
     val begOffset: Int, val endOffset: Int, val entityType: KBPQueryEntityType,
     val nodeId: Option[String], val slotsToFill: Set[Slot]) 
@@ -166,7 +168,8 @@ object KBPQuery {
         //val slotsToFillColdStart = slotsToFill.filter(s => s.name == slot0Text)
         val slotsToFillColdStart = roundID match{
 	      case "round1" => slotsToFill.filter(s => s.name == slot0Text)
-	      case "round2" => slotsToFill.filter(s => s.name == slot1Text)
+	      //case "round2" => slotsToFill.filter(s => s.name == slot1Text)
+	      case "round2" => slotsToFill.filter(s => s.name == slot0Text)
 	      case _ => slotsToFill
 	    }   
         
@@ -222,6 +225,60 @@ object KBPQuery {
     }
 	nameText    	    
   }
+
+  private def parseSingleKBPQueryFromXMLToGetNameId(queryXML: scala.xml.Node): Option[KBPQueryNameId] = 
+{
+
+    var nameText = ""
+    
+    try{
+	    val idText = queryXML.attribute("id") match 
+	    		{case Some(id) if id.length ==1 => id(0).text
+	    		 case None => throw new IllegalArgumentException("no id value for query in xml doc")
+	    		}
+
+	    nameText = queryXML.\\("name").text
+
+
+            val idTokens = idText.split("_") 
+            idTokens.size match {
+            
+              case s if s >= 3 => {val id = idTokens(0) + "_" + idTokens(1) + "_" + idTokens(2)
+                                   Some(KBPQueryNameId(id, nameText))
+
+                                   } 
+              case _ => None
+
+            }
+
+	    //val docIDText = queryXML.\\("docid").text
+	    //val begText = queryXML.\\("beg").text
+	    //val begInt = begText.toInt
+	    //val endText = queryXML.\\("end").text
+	    //val endInt = endText.toInt
+	    //val entityTypeText = queryXML.\\("enttype").text
+    }	    
+	catch {
+      case e: Exception => {
+        println(e.getMessage())
+        return None
+        
+      }
+    }
+
+  }
+
+  def parseKBPQueriesBatch(pathToFile: String, roundID: String, drop: Int, dropRight: Int): List[KBPQuery] = {
+    
+     val xml = XML.loadFile(pathToFile)
+     val queryXMLSeq = xml.\("query")
+     val queryXMLSeqBatch = queryXMLSeq.drop(drop).dropRight(dropRight)
+     
+     val kbpQueryList = for( qXML <- queryXMLSeqBatch) yield parseSingleKBPQueryFromXML(qXML, roundID)
+    
+     kbpQueryList.toList.flatten
+  }
+
 	    
   def parseKBPQueries(pathToFile: String, roundID: String): List[KBPQuery] = {
     
@@ -242,5 +299,17 @@ object KBPQuery {
     
      kbpQueryNameList.toSet
   }
+
+  def parseKBPQueriesToGetNamesIds(pathToFile: String): Set[KBPQueryNameId] = {
+    
+     val xml = XML.loadFile(pathToFile)
+     val queryXMLSeq = xml.\("query")
+     
+     val kbpQueryNameIdList = for( qXML <- queryXMLSeq) yield 
+       parseSingleKBPQueryFromXMLToGetNameId(qXML)
+    
+     kbpQueryNameIdList.toList.flatten.toSet
+  }
+
   
 }

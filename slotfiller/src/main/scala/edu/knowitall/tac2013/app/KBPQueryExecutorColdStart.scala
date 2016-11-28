@@ -1,6 +1,7 @@
 package edu.knowitall.tac2013.app
 
 import java.io._
+import java.nio.file.{Paths, Files}
 import edu.knowitall.tac2013.solr.query.SolrQueryExecutor
 import edu.knowitall.tac2013.app.FilterSolrResults.filterResults
 import edu.knowitall.tac2013.app.util.DocUtils
@@ -9,6 +10,12 @@ import scopt.OptionParser
 import edu.knowitall.collection.immutable.Interval
 import scala.collection.JavaConverters._
 import KBPQueryEntityType._
+import edu.stanford.nlp.pipeline.Annotation
+import edu.knowitall.tac2013.stanford.annotator.utils._
+//import edu.stanford.nlp.pipeline.Annotation
+import edu.stanford.nlp.ling.CoreAnnotations.DocIDAnnotation
+import edu.stanford.nlp.ling.CoreAnnotations
+import edu.stanford.nlp.ling.CoreAnnotations.SentencesAnnotation
 
 object KBPQueryExecutorColdStart {
 
@@ -106,20 +113,26 @@ object KBPQueryExecutorColdStart {
     var queryFile = "."
     var outputFile = "."
     var corpus = "old"
-    //var detailed = false
-    var detailed = true
+    var detailed = false
+    //var detailed = true
     var corefOn = true
     var runID = "UWashington2"
     var roundID = "round1"
     //val roundID = "round2"
-    val round1QueriesFile = "allQueries.xml"
-    val round2QueriesFile = "openie_round2_queries.xml"
-      
+    //val round1QueriesFile = "queries2015_r1.xml"
+    //val round2QueriesFile = "queries2015_r2.xml"
+    var batchDrop = 0
+    var batchDropRight = 0  
+    var pathToSerializedCorpus = "."
+    
     val parser = new OptionParser() {
       arg("queryFile", "Path to query file.", { s => queryFile = s })
       arg("outputFile", "Path to output file.", { s => outputFile = s })
       arg("corpus", "Either \"old\" or \"new\" or \"cs\".", { s => corpus = s })
       arg("roundID", "Either \"round1\" or \"round2\".", { s => roundID = s })
+      arg("drop", "Drop first n queries.", { s => batchDrop = s.toInt })
+      arg("dropRight", "Drop last n queries.", { s => batchDropRight = s.toInt })
+      arg("pathToSerializedCorpus", "Drop first n queries.", { s => pathToSerializedCorpus = s })
       opt("detailed", "Produce more verbose output", { detailed = true })
       opt("coref", "Turn on coref module", { corefOn = true })
       opt("runID", "Set runID name", {s => runID = s})
@@ -137,11 +150,41 @@ object KBPQueryExecutorColdStart {
       case false => OutputFormatter.formattedAnswersOnly(outputStream,runID)
     }
 
+    println("detailed: " + detailed)
     println("corpus: " + corpus)
     println("coref: " + corefOn)
     println("round: " + roundID)
+    println("drop: " + batchDrop)
+    println("dropRight: " + batchDropRight)
+    println("psc: " + pathToSerializedCorpus)    
+    
+    // -----------------------
+    // deserializing testing
+    // -----------------------
+    
+    //val fullDocNameWithPath = "/projects/WebWare6/KBP_2015/corpus/serialized/NYT_ENG_20131231.0228.ann"
+    //println("fndp: " + fullDocNameWithPath)
+
+    //val fis = new FileInputStream(fullDocNameWithPath);
+    //val in = new ObjectInputStream(fis);
+    //val obj = in.readObject();
+    
+    //return
+    
+    //val doc = Serializer.deserialize(fullDocNameWithPath).asInstanceOf[Annotation]
+    
+    //return    
+    
+    //val testID = doc.get(classOf[DocIDAnnotation])
+    //println("doc id: " + testID)              
+    //val docSentences = doc.get(classOf[SentencesAnnotation]).asScala.toList   
+    //println("doc num sent: " + docSentences.size) 
+    
+    //return    
+    
     
     val kbpQueryList = KBPQuery.parseKBPQueries(queryFile, roundID)
+    //val kbpQueryList = KBPQuery.parseKBPQueries(queryFile, roundID, batchDrop, batchDropRight)
     
     println("num queries: " + kbpQueryList.size)
 
@@ -230,24 +273,103 @@ object KBPQueryExecutorColdStart {
 
     //return
 
-    var queryNameSetRound2 = Set[String]()
-    var queryNameSetRound1 = Set[String]()
+   /* var queryNameSetRound2 = Set[KBPQueryNameId]()
+    var queryNameSetRound1 = Set[KBPQueryNameId]()
     
     if(roundID == "round2"){
     
-      queryNameSetRound2 = KBPQuery.parseKBPQueriesToGetNames(round2QueriesFile)
-      queryNameSetRound1 = KBPQuery.parseKBPQueriesToGetNames(round1QueriesFile)
+      queryNameSetRound1 = KBPQuery.parseKBPQueriesToGetNamesIds(round1QueriesFile)
+      queryNameSetRound2 = KBPQuery.parseKBPQueriesToGetNamesIds(round2QueriesFile)
+
         
       //println("queryNameSetRound1 size: " + queryNameSetRound1.size)
       //println("queryNameSetRound2 size: " + queryNameSetRound2.size)
        
-    }    
+    } */
+    
+    // ---------------------------------------------------------------------------
+    // Single Name Resolver
+    // ----------------------------------------------------------------------------
+	  
+       
+	  
+        // For PER queries which have a single name, replace that name with a full name,
+        // if one can be determined
+        for(query <- kbpQueryList){	    
+          
+          
+	      var singleQueryNamePER = false
+	      
+	      try{
+	      
+	      singleQueryNamePER = query.entityType match{
+            case PER if(query.name.split(" ").size == 1) => {
+              
+              val docNameWithPath = pathToSerializedCorpus + query.doc + ".ann"
+
+              //println("snr: " + docNameWithPath)
+              //Get doc from serialized corpus
+              
+              if (Files.exists(Paths.get(docNameWithPath))) {
+
+                //println("snr: deserializing doc")
+                
+                val doc = Serializer.deserialize(docNameWithPath).asInstanceOf[Annotation]
+
+                val (single, qname) = SingleNameResolver.singleQueryName(doc, query)
+                
+                /*val (single, qname) = roundID match {
+                  case "round1" => SingleNameResolver.singleQueryName(doc, query)
+                  case "round2" => {
+
+     	            var queryNameSetRound2 = Set[KBPQueryNameId]()
+                    var queryNameSetRound1 = Set[KBPQueryNameId]()
+
+                    if (Files.exists(Paths.get(round1QueriesFile))) {
+                      queryNameSetRound1 = KBPQuery.parseKBPQueriesToGetNamesIds(round1QueriesFile)
+                    }
+     	            if (Files.exists(Paths.get(round2QueriesFile))) {
+                      queryNameSetRound2 = KBPQuery.parseKBPQueriesToGetNamesIds(round2QueriesFile)           
+     	            }        
+                    println("SNR: r1 size: " + queryNameSetRound1.size)
+                    println("SNR: r2 size: " + queryNameSetRound2.size)
+
+                    SingleNameResolver.singleQueryNameCheckQueryLists(doc, query, queryNameSetRound1, queryNameSetRound2)
+      
+                  }
+                }*/
+
+                // Found a full name for the single name
+                if(!single) query.name = qname                    
+                single
+              }
+              else true                  
+        	}
+	        case _ => false
+	      }
+	      
+	      }catch {case e: Exception => 
+	        {e.printStackTrace()
+	          println("EXCEPTION: SingleNameResolver") 
+	        }	  
+	      } 
+	      
+        }
+	    
+    
     
     for (q <- kbpQueryList) { 
 
       var singleQueryNamePER = false
       
-      if(roundID == "round2"){
+      singleQueryNamePER = q.entityType match{
+            case PER if(q.name .split(" ").size == 1) => true
+	        case _ => false
+	  }
+      
+      println("sqn per: " + singleQueryNamePER)
+      
+      /*if(roundID == "round2"){
         
           //println("queryName: " + q.name)
 
@@ -261,7 +383,7 @@ object KBPQueryExecutorColdStart {
       
         //println("snr: " + singleQueryNamePER + " " + q.name)  
         
-      }
+      }*/
                  
       //return
       
